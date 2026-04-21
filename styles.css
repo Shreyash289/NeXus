@@ -637,16 +637,36 @@ body.dark .theme-toggle__thumb {
   border-radius: 18px;
   border: 1px solid var(--line);
   background: var(--card-strong);
-  padding: 10px;
-  display: grid;
-  place-items: center;
+  padding: 10px 8px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 4px;
   text-align: center;
+  overflow: hidden;
 }
 
 .table-cell small,
 .dp-cell small,
 .tree-node small {
   color: var(--muted);
+}
+
+.dp-cell strong {
+  display: block;
+  font-size: 0.98rem;
+  line-height: 1.05;
+  max-width: 100%;
+  word-break: break-word;
+}
+
+.dp-cell small {
+  display: block;
+  font-size: 0.68rem;
+  line-height: 1;
+  max-width: 100%;
+  word-break: break-word;
 }
 
 .graph-layout {
