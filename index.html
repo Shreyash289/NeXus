@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>NeXus | Interactive DAA Studio</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar">
+        <div class="brand-block">
+          <div class="brand-mark">N</div>
+          <div>
+            <p class="eyebrow">Interactive DAA Lab</p>
+            <h1>NeXus</h1>
+          </div>
+        </div>
+
+        <div class="theme-switch">
+          <span>Theme</span>
+          <button id="theme-toggle" class="theme-toggle" type="button" aria-label="Toggle theme">
+            <span class="theme-toggle__track">
+              <span class="theme-toggle__thumb"></span>
+            </span>
+          </button>
+        </div>
+
+        <section class="sidebar-panel">
+          <p class="eyebrow">Categories</p>
+          <nav id="category-nav" class="category-nav" aria-label="Algorithm categories"></nav>
+        </section>
+
+        <section class="sidebar-panel sidebar-panel--compact">
+          <p class="eyebrow">Quick Stats</p>
+          <div class="stat-card-grid">
+            <article class="stat-card">
+              <span>Algorithms</span>
+              <strong id="algorithm-count">0</strong>
+            </article>
+            <article class="stat-card">
+              <span>Visual Modes</span>
+              <strong>7</strong>
+            </article>
+          </div>
+        </section>
+      </aside>
+
+      <main class="main-content">
+        <header class="hero">
+          <div>
+            <p class="eyebrow">Design & Analysis of Algorithms</p>
+            <h2>Algorithm visualization built for demos, explanation, and real interaction.</h2>
+            <p class="hero-copy">
+              Explore searching, sorting, greedy, dynamic programming, backtracking, and graph
+              algorithms with guided steps, autoplay, speed control, and input generation.
+            </p>
+          </div>
+          <div class="hero-actions">
+            <button id="random-algorithm" class="primary-button" type="button">Surprise Me</button>
+            <button id="reset-workspace" class="secondary-button" type="button">Reset Workspace</button>
+          </div>
+        </header>
+
+        <section class="dashboard-layout">
+          <div class="dashboard-column">
+            <section class="panel panel--cards">
+              <div class="panel__header">
+                <div>
+                  <p class="eyebrow">Algorithm Selection</p>
+                  <h3>Choose an algorithm</h3>
+                </div>
+                <label class="search-field">
+                  <span class="sr-only">Search algorithms</span>
+                  <input id="search-input" type="search" placeholder="Search by name or category" />
+                </label>
+              </div>
+              <div id="algorithm-grid" class="algorithm-grid"></div>
+            </section>
+          </div>
+
+          <div class="workspace-column">
+            <section class="panel detail-panel">
+              <div class="panel__header panel__header--stack">
+                <div>
+                  <p class="eyebrow" id="algorithm-category">Select an algorithm</p>
+                  <h3 id="algorithm-title">Interactive Workspace</h3>
+                </div>
+                <p id="algorithm-description" class="panel-copy">
+                  Pick any card on the left to open the problem description, input controls,
+                  visualization, and guided execution flow.
+                </p>
+              </div>
+
+              <div class="workspace-grid">
+                <section class="card card--input">
+                  <div class="card__header">
+                    <h4>Input Section</h4>
+                    <div class="card__actions">
+                      <button id="randomize-input" class="secondary-button" type="button">Random Input</button>
+                      <button id="run-algorithm" class="primary-button" type="button">Run</button>
+                    </div>
+                  </div>
+                  <form id="input-form" class="input-form"></form>
+                </section>
+
+                <section class="card card--visualization">
+                  <div class="card__header">
+                    <h4>Visualization Panel</h4>
+                    <div class="playback-controls">
+                      <button id="prev-step" class="icon-button" type="button" aria-label="Previous step">&larr;</button>
+                      <button id="play-pause" class="primary-button" type="button">Auto Play</button>
+                      <button id="next-step" class="icon-button" type="button" aria-label="Next step">&rarr;</button>
+                    </div>
+                  </div>
+                  <div class="speed-row">
+                    <label for="speed-select">Speed</label>
+                    <select id="speed-select">
+                      <option value="1400">Slow</option>
+                      <option value="850" selected>Medium</option>
+                      <option value="350">Fast</option>
+                    </select>
+                    <button id="reset-run" class="secondary-button" type="button">Run Again</button>
+                  </div>
+                  <div id="visualization-panel" class="visualization-panel placeholder-panel">
+                    Select an algorithm to start visualizing.
+                  </div>
+                </section>
+
+                <section class="card card--steps">
+                  <div class="card__header">
+                    <h4>Step-by-Step Execution</h4>
+                    <span id="step-counter" class="pill">0 / 0</span>
+                  </div>
+                  <ol id="steps-list" class="steps-list">
+                    <li class="step-placeholder">Execution details will appear here.</li>
+                  </ol>
+                </section>
+
+                <section class="card card--summary">
+                  <div class="summary-grid">
+                    <article class="summary-box">
+                      <span class="eyebrow">Final Output</span>
+                      <div id="final-output" class="summary-box__content">No run yet.</div>
+                    </article>
+                    <article class="summary-box">
+                      <span class="eyebrow">Complexity</span>
+                      <div id="complexity-output" class="summary-box__content">Choose an algorithm.</div>
+                    </article>
+                  </div>
+                </section>
+              </div>
+            </section>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script type="module" src="./main.js"></script>
+  </body>
+</html>
