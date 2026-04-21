@@ -53,21 +53,6 @@
       </aside>
 
       <main class="main-content">
-        <header class="hero">
-          <div>
-            <p class="eyebrow">Design & Analysis of Algorithms</p>
-            <h2>Algorithm visualization built for demos, explanation, and real interaction.</h2>
-            <p class="hero-copy">
-              Explore searching, sorting, greedy, dynamic programming, backtracking, and graph
-              algorithms with guided steps, autoplay, speed control, and input generation.
-            </p>
-          </div>
-          <div class="hero-actions">
-            <button id="random-algorithm" class="primary-button" type="button">Surprise Me</button>
-            <button id="reset-workspace" class="secondary-button" type="button">Reset Workspace</button>
-          </div>
-        </header>
-
         <section class="dashboard-layout">
           <div class="dashboard-column">
             <section class="panel panel--cards">
@@ -88,14 +73,20 @@
           <div class="workspace-column">
             <section class="panel detail-panel">
               <div class="panel__header panel__header--stack">
-                <div>
-                  <p class="eyebrow" id="algorithm-category">Select an algorithm</p>
-                  <h3 id="algorithm-title">Interactive Workspace</h3>
+                <div class="workspace-head">
+                  <div>
+                    <p class="eyebrow" id="algorithm-category">Select an algorithm</p>
+                    <h3 id="algorithm-title">Interactive Workspace</h3>
+                    <p id="algorithm-description" class="panel-copy">
+                      Pick any card on the left to open the problem description, input controls,
+                      visualization, and guided execution flow.
+                    </p>
+                  </div>
+                  <div class="workspace-actions">
+                    <button id="random-algorithm" class="primary-button" type="button">Surprise Me</button>
+                    <button id="reset-workspace" class="secondary-button" type="button">Reset Workspace</button>
+                  </div>
                 </div>
-                <p id="algorithm-description" class="panel-copy">
-                  Pick any card on the left to open the problem description, input controls,
-                  visualization, and guided execution flow.
-                </p>
               </div>
 
               <div class="workspace-grid">

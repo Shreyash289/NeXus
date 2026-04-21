@@ -658,7 +658,8 @@ function renderGraphVisualization(snapshot) {
   const canvas = document.createElement("div");
   canvas.className = "graph-canvas";
   const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-  svg.setAttribute("viewBox", "0 0 100 80");
+  svg.setAttribute("viewBox", "0 0 100 100");
+  svg.setAttribute("preserveAspectRatio", "xMidYMid meet");
   svg.classList.add("graph-svg");
 
   snapshot.edges.forEach((edge) => {
@@ -670,33 +671,56 @@ function renderGraphVisualization(snapshot) {
     line.setAttribute("x2", to.x);
     line.setAttribute("y2", to.y);
     line.setAttribute("stroke", edge.state === "selected" ? "var(--success)" : edge.state === "considering" ? "var(--highlight)" : "var(--muted)");
-    line.setAttribute("stroke-width", edge.state === "selected" ? "1.8" : "1.1");
+    line.setAttribute("stroke-width", edge.state === "selected" ? "2.3" : "1.35");
+    line.setAttribute("class", "graph-line");
     svg.appendChild(line);
 
+    const midX = (from.x + to.x) / 2;
+    const midY = (from.y + to.y) / 2;
+    const weightBg = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+    weightBg.setAttribute("cx", String(midX));
+    weightBg.setAttribute("cy", String(midY));
+    weightBg.setAttribute("r", "3.6");
+    weightBg.setAttribute("fill", "var(--panel-solid)");
+    weightBg.setAttribute("stroke", "var(--line)");
+    weightBg.setAttribute("stroke-width", "0.3");
+    svg.appendChild(weightBg);
+
     const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
-    text.setAttribute("x", String((from.x + to.x) / 2));
-    text.setAttribute("y", String((from.y + to.y) / 2));
+    text.setAttribute("x", String(midX));
+    text.setAttribute("y", String(midY + 0.2));
     text.setAttribute("fill", "var(--text)");
-    text.setAttribute("font-size", "4");
+    text.setAttribute("font-size", "3.4");
+    text.setAttribute("class", "graph-weight");
+    text.setAttribute("text-anchor", "middle");
+    text.setAttribute("dominant-baseline", "middle");
     text.textContent = String(edge.weight ?? "");
     svg.appendChild(text);
   });
 
-  const nodeLayer = document.createElement("div");
-  nodeLayer.className = "graph-node-layer";
   snapshot.nodes.forEach((node) => {
-    const el = document.createElement("div");
-    const classes = ["visual-node"];
-    if (node.state === "active") classes.push("active");
-    if (node.state === "visited") classes.push("visited");
-    el.className = classes.join(" ");
-    el.style.left = `${node.x}%`;
-    el.style.top = `${node.y}%`;
-    el.textContent = node.id;
-    nodeLayer.appendChild(el);
+    const group = document.createElementNS("http://www.w3.org/2000/svg", "g");
+    const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+    circle.setAttribute("cx", String(node.x));
+    circle.setAttribute("cy", String(node.y));
+    circle.setAttribute("r", "6.8");
+    circle.setAttribute(
+      "class",
+      `graph-node-circle${node.state === "active" ? " active" : node.state === "visited" ? " visited" : ""}`,
+    );
+    group.appendChild(circle);
+
+    const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
+    label.setAttribute("x", String(node.x));
+    label.setAttribute("y", String(node.y));
+    label.setAttribute("font-size", "4.4");
+    label.setAttribute("class", "graph-node-label");
+    label.textContent = node.id;
+    group.appendChild(label);
+    svg.appendChild(group);
   });
 
-  canvas.append(svg, nodeLayer);
+  canvas.append(svg);
   wrap.appendChild(canvas);
   els.visualizationPanel.replaceChildren(wrap);
 }
@@ -877,9 +901,9 @@ function parseGraphInput(nodesText, edgesText) {
 function layoutGraphNodes(nodeIds) {
   const count = nodeIds.length;
   const centerX = 50;
-  const centerY = 40;
-  const radiusX = count > 6 ? 36 : 32;
-  const radiusY = count > 6 ? 28 : 24;
+  const centerY = 50;
+  const radiusX = count > 6 ? 34 : 30;
+  const radiusY = count > 6 ? 32 : 28;
   return nodeIds.map((id, index) => {
     const angle = (-Math.PI / 2) + (index / count) * Math.PI * 2;
     return {
