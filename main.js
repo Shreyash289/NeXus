@@ -29,6 +29,11 @@ const graphTemplate = {
   ],
 };
 
+const defaultGraphValues = {
+  nodes: graphTemplate.nodes.map((node) => node.id).join(","),
+  edges: graphTemplate.edges.map((edge) => `${edge.from},${edge.to},${edge.weight}`).join("\n"),
+};
+
 const algorithms = [
   createArrayAlgorithm("linear-search", "Linear Search", "searching-sorting", "Scan each element until the target is found or the array ends.", "search", runLinearSearch),
   createArrayAlgorithm("binary-search", "Binary Search", "searching-sorting", "Repeatedly split a sorted array to find the target in logarithmic time.", "search", runBinarySearch),
@@ -194,8 +199,11 @@ const els = {
   inputForm: document.querySelector("#input-form"),
   finalOutput: document.querySelector("#final-output"),
   complexityOutput: document.querySelector("#complexity-output"),
-  stepsList: document.querySelector("#steps-list"),
   stepCounter: document.querySelector("#step-counter"),
+  currentStepBox: document.querySelector("#current-step-box"),
+  currentStep: document.querySelector("#current-step"),
+  runProgress: document.querySelector("#run-progress"),
+  playbackStatus: document.querySelector("#playback-status"),
   visualizationPanel: document.querySelector("#visualization-panel"),
   themeToggle: document.querySelector("#theme-toggle"),
   runButton: document.querySelector("#run-algorithm"),
@@ -328,7 +336,7 @@ function renderInputForm() {
     let field;
     if (input.type === "textarea") {
       field = document.createElement("textarea");
-      field.rows = 5;
+      field.rows = input.id === "edges" ? 8 : 5;
     } else {
       field = document.createElement("input");
       field.type = input.type;
@@ -352,7 +360,10 @@ function renderRunState() {
   if (!state.run) {
     els.finalOutput.textContent = "No run yet.";
     els.stepCounter.textContent = "0 / 0";
-    els.stepsList.innerHTML = '<li class="step-placeholder">Execution details will appear here.</li>';
+    setInsightMode(true);
+    els.currentStep.textContent = "Run an algorithm to see the active state.";
+    els.runProgress.textContent = "Waiting for execution.";
+    els.playbackStatus.textContent = "Manual mode.";
     els.visualizationPanel.className = "visualization-panel placeholder-panel";
     els.visualizationPanel.textContent = `${algorithm.name} is ready. Configure input and press Run.`;
     updatePlayButton();
@@ -360,16 +371,15 @@ function renderRunState() {
   }
 
   const step = state.run.steps[state.currentStepIndex] || state.run.steps[state.run.steps.length - 1];
+  const showDetailedInsights = shouldShowDetailedInsights(algorithm, state.run);
   els.finalOutput.textContent = state.run.finalOutput;
-  els.stepCounter.textContent = `${state.currentStepIndex + 1} / ${state.run.steps.length}`;
-  els.stepsList.innerHTML = "";
-
-  state.run.steps.forEach((item, index) => {
-    const li = document.createElement("li");
-    li.textContent = item.message;
-    if (index === state.currentStepIndex) li.className = "active";
-    els.stepsList.appendChild(li);
-  });
+  els.stepCounter.textContent = showDetailedInsights ? `${state.currentStepIndex + 1} / ${state.run.steps.length}` : "Visual Focus";
+  setInsightMode(showDetailedInsights);
+  els.currentStep.textContent = showDetailedInsights
+    ? step.message
+    : "Detailed per-step text is hidden for long runs. Use the large visualization and playback controls instead.";
+  els.runProgress.textContent = `${Math.round(((state.currentStepIndex + 1) / state.run.steps.length) * 100)}% complete across ${state.run.steps.length} states.`;
+  els.playbackStatus.textContent = state.autoPlayId ? `Auto play running at ${labelForSpeed(state.speed)} speed.` : "Manual stepping mode.";
 
   els.visualizationPanel.className = "visualization-panel";
   renderVisualization(algorithm.visualType, step.snapshot, algorithm);
@@ -391,7 +401,10 @@ function runActiveAlgorithm() {
     state.currentStepIndex = 0;
     els.finalOutput.textContent = error.message;
     els.stepCounter.textContent = "0 / 0";
-    els.stepsList.innerHTML = '<li class="step-placeholder">Fix the input and run the algorithm again.</li>';
+    setInsightMode(true);
+    els.currentStep.textContent = "Fix the input and run the algorithm again.";
+    els.runProgress.textContent = "Execution stopped.";
+    els.playbackStatus.textContent = "Validation error.";
     els.visualizationPanel.className = "visualization-panel placeholder-panel";
     els.visualizationPanel.textContent = "Input validation failed.";
   }
@@ -467,6 +480,14 @@ function stopAutoPlay() {
 
 function updatePlayButton() {
   els.playPauseButton.textContent = state.autoPlayId ? "Pause" : "Auto Play";
+  if (state.run) {
+    els.playbackStatus.textContent = state.autoPlayId ? `Auto play running at ${labelForSpeed(state.speed)} speed.` : "Manual stepping mode.";
+  }
+}
+
+function setInsightMode(showDetailedInsights) {
+  els.currentStepBox.classList.toggle("is-hidden", !showDetailedInsights);
+  els.currentStepBox.parentElement.classList.toggle("compact", !showDetailedInsights);
 }
 
 function shiftStep(delta) {
@@ -517,7 +538,7 @@ function renderSortVisualization(snapshot) {
     if (snapshot.sorted?.includes(index)) classes.push("done");
     if (snapshot.pivot === index) classes.push("pivot");
     bar.className = classes.join(" ");
-    bar.style.height = `${Math.max((value / maxValue) * 190, 20)}px`;
+    bar.style.height = `${Math.max((value / maxValue) * 480, 28)}px`;
     bar.textContent = value;
     const label = document.createElement("span");
     label.textContent = index;
@@ -656,7 +677,7 @@ function renderGraphVisualization(snapshot) {
     text.setAttribute("x", String((from.x + to.x) / 2));
     text.setAttribute("y", String((from.y + to.y) / 2));
     text.setAttribute("fill", "var(--text)");
-    text.setAttribute("font-size", "3.2");
+    text.setAttribute("font-size", "4");
     text.textContent = String(edge.weight ?? "");
     svg.appendChild(text);
   });
@@ -717,6 +738,7 @@ function createArrayAlgorithm(id, name, category, description, visualType, execu
 }
 
 function createGraphAlgorithm(id, name, description, execute) {
+  const needsStartNode = id !== "kruskals";
   return {
     id,
     name,
@@ -729,16 +751,48 @@ function createGraphAlgorithm(id, name, description, execute) {
         ? "Time: O(E log E) | Space: O(V + E)"
         : "Time: O(V + E) | Space: O(V)",
     inputs: [
-      { id: "start", label: "Start Node", type: "text", value: "A" },
+      {
+        id: "nodes",
+        label: "Node Names",
+        type: "text",
+        value: defaultGraphValues.nodes,
+        help: "Comma-separated node ids, for example: A,B,C,D,E",
+      },
+      {
+        id: "edges",
+        label: "Edges (from,to,weight per line)",
+        type: "textarea",
+        value: defaultGraphValues.edges,
+        help: "For BFS and DFS, weights are optional but accepted. Example: A,B,4",
+      },
+      ...(needsStartNode
+        ? [
+            {
+              id: "start",
+              label: "Start Node",
+              type: "text",
+              value: "A",
+              help: "Must match one of the node names above.",
+            },
+          ]
+        : []),
     ],
     parseInput: (values) => {
-      const start = values.start.trim().toUpperCase() || "A";
-      if (!graphTemplate.nodes.some((node) => node.id === start)) {
-        throw new Error(`Start node must be one of: ${graphTemplate.nodes.map((node) => node.id).join(", ")}`);
+      const graph = parseGraphInput(values.nodes, values.edges);
+      const payload = { ...graph };
+      if (needsStartNode) {
+        const start = (values.start || "").trim();
+        if (!start) {
+          throw new Error(`Start node is required. Use one of: ${graph.nodes.map((node) => node.id).join(", ")}`);
+        }
+        if (!graph.nodes.some((node) => node.id === start)) {
+          throw new Error(`Start node must be one of: ${graph.nodes.map((node) => node.id).join(", ")}`);
+        }
+        payload.start = start;
       }
-      return { start };
+      return payload;
     },
-    randomize: () => ({ start: graphTemplate.nodes[randomInt(0, graphTemplate.nodes.length - 1)].id }),
+    randomize: () => randomGraphInput(needsStartNode),
     execute,
   };
 }
@@ -767,6 +821,122 @@ function parsePairLines(text, fields) {
     throw new Error("Enter at least one row of item data.");
   }
   return rows;
+}
+
+function parseGraphInput(nodesText, edgesText) {
+  const nodeIds = nodesText
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
+  if (nodeIds.length < 2) {
+    throw new Error("Enter at least two node names.");
+  }
+  if (new Set(nodeIds).size !== nodeIds.length) {
+    throw new Error("Node names must be unique.");
+  }
+
+  const rawEdges = edgesText
+    .split(/\n+/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+  if (!rawEdges.length) {
+    throw new Error("Enter at least one edge.");
+  }
+
+  const nodeSet = new Set(nodeIds);
+  const seenEdges = new Set();
+  const edges = rawEdges.map((line) => {
+    const parts = line.split(",").map((item) => item.trim());
+    if (parts.length < 2 || parts.length > 3) {
+      throw new Error(`Invalid edge format: "${line}". Use from,to or from,to,weight.`);
+    }
+    const [from, to, weightText] = parts;
+    if (!nodeSet.has(from) || !nodeSet.has(to)) {
+      throw new Error(`Edge "${line}" references a node not listed in Node Names.`);
+    }
+    if (from === to) {
+      throw new Error(`Self-loop "${line}" is not supported.`);
+    }
+    const key = [from, to].sort().join("|");
+    if (seenEdges.has(key)) {
+      throw new Error(`Duplicate edge detected between ${from} and ${to}.`);
+    }
+    seenEdges.add(key);
+    const weight = weightText === undefined || weightText === "" ? 1 : Number(weightText);
+    if (!Number.isFinite(weight) || weight <= 0) {
+      throw new Error(`Edge "${line}" must have a positive numeric weight.`);
+    }
+    return { from, to, weight };
+  });
+
+  const nodes = layoutGraphNodes(nodeIds);
+  ensureGraphConnectivity(nodes, edges);
+  return { nodes, edges };
+}
+
+function layoutGraphNodes(nodeIds) {
+  const count = nodeIds.length;
+  const centerX = 50;
+  const centerY = 40;
+  const radiusX = count > 6 ? 36 : 32;
+  const radiusY = count > 6 ? 28 : 24;
+  return nodeIds.map((id, index) => {
+    const angle = (-Math.PI / 2) + (index / count) * Math.PI * 2;
+    return {
+      id,
+      x: Number((centerX + Math.cos(angle) * radiusX).toFixed(2)),
+      y: Number((centerY + Math.sin(angle) * radiusY).toFixed(2)),
+    };
+  });
+}
+
+function ensureGraphConnectivity(nodes, edges) {
+  const adjacency = buildAdjacency(nodes, edges);
+  const visited = new Set();
+  const queue = [nodes[0].id];
+  while (queue.length) {
+    const current = queue.shift();
+    if (visited.has(current)) continue;
+    visited.add(current);
+    adjacency[current].forEach((neighbor) => {
+      if (!visited.has(neighbor)) queue.push(neighbor);
+    });
+  }
+  if (visited.size !== nodes.length) {
+    throw new Error("Graph must be connected so traversal and MST visualizations can cover all nodes.");
+  }
+}
+
+function randomGraphInput(needsStartNode) {
+  const count = randomInt(5, 8);
+  const nodeIds = Array.from({ length: count }, (_, index) => String.fromCharCode(65 + index));
+  const edges = [];
+  const seen = new Set();
+
+  for (let index = 1; index < nodeIds.length; index += 1) {
+    const from = nodeIds[index];
+    const to = nodeIds[randomInt(0, index - 1)];
+    const key = [from, to].sort().join("|");
+    seen.add(key);
+    edges.push(`${from},${to},${randomInt(1, 12)}`);
+  }
+
+  const extraEdges = randomInt(count, count + 2);
+  while (edges.length < extraEdges) {
+    const from = nodeIds[randomInt(0, nodeIds.length - 1)];
+    const to = nodeIds[randomInt(0, nodeIds.length - 1)];
+    if (from === to) continue;
+    const key = [from, to].sort().join("|");
+    if (seen.has(key)) continue;
+    seen.add(key);
+    edges.push(`${from},${to},${randomInt(1, 12)}`);
+  }
+
+  return {
+    nodes: nodeIds.join(","),
+    edges: edges.join("\n"),
+    ...(needsStartNode ? { start: nodeIds[randomInt(0, nodeIds.length - 1)] } : {}),
+  };
 }
 
 function cloneArraySnapshot(array, extras = {}) {
@@ -1210,10 +1380,10 @@ function runNQueens({ size }) {
   };
 }
 
-function runBfs({ start }) {
-  const nodes = structuredClone(graphTemplate.nodes);
-  const edges = structuredClone(graphTemplate.edges).map((edge) => ({ ...edge }));
-  const adjacency = buildAdjacency(edges);
+function runBfs({ start, nodes, edges }) {
+  const graphNodes = structuredClone(nodes);
+  const graphEdges = structuredClone(edges).map((edge) => ({ ...edge }));
+  const adjacency = buildAdjacency(graphNodes, graphEdges);
   const queue = [start];
   const visited = new Set([start]);
   const order = [];
@@ -1221,13 +1391,13 @@ function runBfs({ start }) {
   while (queue.length) {
     const current = queue.shift();
     order.push(current);
-    pushStep(steps, `Visit node ${current} and inspect its neighbors.`, graphSnapshot(nodes, edges, visited, current));
+    pushStep(steps, `Visit node ${current} and inspect its neighbors.`, graphSnapshot(graphNodes, graphEdges, visited, current));
     adjacency[current].forEach((neighbor) => {
       if (!visited.has(neighbor)) {
         visited.add(neighbor);
         queue.push(neighbor);
-        markEdge(edges, current, neighbor, "selected");
-        pushStep(steps, `Queue neighbor ${neighbor} discovered from ${current}.`, graphSnapshot(nodes, edges, visited, neighbor));
+        markEdge(graphEdges, current, neighbor, "selected");
+        pushStep(steps, `Queue neighbor ${neighbor} discovered from ${current}.`, graphSnapshot(graphNodes, graphEdges, visited, neighbor));
       }
     });
   }
@@ -1237,10 +1407,10 @@ function runBfs({ start }) {
   };
 }
 
-function runDfs({ start }) {
-  const nodes = structuredClone(graphTemplate.nodes);
-  const edges = structuredClone(graphTemplate.edges).map((edge) => ({ ...edge }));
-  const adjacency = buildAdjacency(edges);
+function runDfs({ start, nodes, edges }) {
+  const graphNodes = structuredClone(nodes);
+  const graphEdges = structuredClone(edges).map((edge) => ({ ...edge }));
+  const adjacency = buildAdjacency(graphNodes, graphEdges);
   const visited = new Set();
   const order = [];
   const steps = [];
@@ -1248,10 +1418,10 @@ function runDfs({ start }) {
   function dfs(node) {
     visited.add(node);
     order.push(node);
-    pushStep(steps, `Visit node ${node} and dive deeper.`, graphSnapshot(nodes, edges, visited, node));
+    pushStep(steps, `Visit node ${node} and dive deeper.`, graphSnapshot(graphNodes, graphEdges, visited, node));
     adjacency[node].forEach((neighbor) => {
       if (!visited.has(neighbor)) {
-        markEdge(edges, node, neighbor, "selected");
+        markEdge(graphEdges, node, neighbor, "selected");
         dfs(neighbor);
       }
     });
@@ -1264,16 +1434,16 @@ function runDfs({ start }) {
   };
 }
 
-function runPrims({ start }) {
-  const nodes = structuredClone(graphTemplate.nodes);
-  const edges = structuredClone(graphTemplate.edges).map((edge) => ({ ...edge }));
+function runPrims({ start, nodes, edges }) {
+  const graphNodes = structuredClone(nodes);
+  const graphEdges = structuredClone(edges).map((edge) => ({ ...edge }));
   const visited = new Set([start]);
   const mst = [];
   const steps = [];
 
-  while (visited.size < nodes.length) {
+  while (visited.size < graphNodes.length) {
     let candidate = null;
-    edges.forEach((edge) => {
+    graphEdges.forEach((edge) => {
       const inVisited = visited.has(edge.from) || visited.has(edge.to);
       const crossesCut = visited.has(edge.from) !== visited.has(edge.to);
       if (inVisited && crossesCut && (!candidate || edge.weight < candidate.weight)) {
@@ -1285,21 +1455,24 @@ function runPrims({ start }) {
     visited.add(candidate.from);
     visited.add(candidate.to);
     mst.push(candidate);
-    pushStep(steps, `Add edge ${candidate.from}-${candidate.to} with weight ${candidate.weight}.`, graphSnapshot(nodes, edges, visited, candidate.to));
+    pushStep(steps, `Add edge ${candidate.from}-${candidate.to} with weight ${candidate.weight}.`, graphSnapshot(graphNodes, graphEdges, visited, candidate.to));
   }
 
+  if (mst.length !== graphNodes.length - 1) {
+    throw new Error("Unable to build an MST from the provided graph.");
+  }
   return {
     steps,
     finalOutput: `MST edges: ${mst.map((edge) => `${edge.from}-${edge.to}`).join(", ")} | Total weight = ${mst.reduce((sum, edge) => sum + edge.weight, 0)}`,
   };
 }
 
-function runKruskals() {
-  const nodes = structuredClone(graphTemplate.nodes);
-  const edges = structuredClone(graphTemplate.edges)
+function runKruskals({ nodes, edges }) {
+  const graphNodes = structuredClone(nodes);
+  const graphEdges = structuredClone(edges)
     .map((edge) => ({ ...edge }))
     .sort((a, b) => a.weight - b.weight);
-  const parent = Object.fromEntries(nodes.map((node) => [node.id, node.id]));
+  const parent = Object.fromEntries(graphNodes.map((node) => [node.id, node.id]));
   const steps = [];
   const mst = [];
 
@@ -1312,28 +1485,31 @@ function runKruskals() {
     parent[find(a)] = find(b);
   }
 
-  edges.forEach((edge) => {
+  graphEdges.forEach((edge) => {
     edge.state = "considering";
-    pushStep(steps, `Consider edge ${edge.from}-${edge.to} with weight ${edge.weight}.`, graphSnapshot(nodes, edges, new Set(mst.flatMap((item) => [item.from, item.to])), edge.to));
+    pushStep(steps, `Consider edge ${edge.from}-${edge.to} with weight ${edge.weight}.`, graphSnapshot(graphNodes, graphEdges, new Set(mst.flatMap((item) => [item.from, item.to])), edge.to));
     if (find(edge.from) !== find(edge.to)) {
       union(edge.from, edge.to);
       edge.state = "selected";
       mst.push(edge);
-      pushStep(steps, `Accept edge ${edge.from}-${edge.to}; it does not form a cycle.`, graphSnapshot(nodes, edges, new Set(mst.flatMap((item) => [item.from, item.to])), edge.to));
+      pushStep(steps, `Accept edge ${edge.from}-${edge.to}; it does not form a cycle.`, graphSnapshot(graphNodes, graphEdges, new Set(mst.flatMap((item) => [item.from, item.to])), edge.to));
     } else {
       edge.state = undefined;
     }
   });
 
+  if (mst.length !== graphNodes.length - 1) {
+    throw new Error("Unable to build an MST from the provided graph.");
+  }
   return {
     steps,
     finalOutput: `MST edges: ${mst.map((edge) => `${edge.from}-${edge.to}`).join(", ")} | Total weight = ${mst.reduce((sum, edge) => sum + edge.weight, 0)}`,
   };
 }
 
-function buildAdjacency(edges) {
+function buildAdjacency(nodes, edges) {
   const adjacency = {};
-  graphTemplate.nodes.forEach((node) => {
+  nodes.forEach((node) => {
     adjacency[node.id] = [];
   });
   edges.forEach((edge) => {
@@ -1375,6 +1551,19 @@ function range(start, end) {
 
 function clamp(value, min, max) {
   return Math.max(min, Math.min(max, value));
+}
+
+function labelForSpeed(speed) {
+  if (speed >= 1400) return "slow";
+  if (speed >= 850) return "medium";
+  return "fast";
+}
+
+function shouldShowDetailedInsights(algorithm, run) {
+  if (!run) return true;
+  if (algorithm.category === "graph") return true;
+  if (algorithm.id === "n-queens") return false;
+  return run.steps.length <= 80;
 }
 
 init();

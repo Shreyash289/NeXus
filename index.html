@@ -133,17 +133,10 @@
                   </div>
                 </section>
 
-                <section class="card card--steps">
-                  <div class="card__header">
-                    <h4>Step-by-Step Execution</h4>
-                    <span id="step-counter" class="pill">0 / 0</span>
-                  </div>
-                  <ol id="steps-list" class="steps-list">
-                    <li class="step-placeholder">Execution details will appear here.</li>
-                  </ol>
-                </section>
-
                 <section class="card card--summary">
+                  <div class="card__header">
+                    <h4>Output & Analysis</h4>
+                  </div>
                   <div class="summary-grid">
                     <article class="summary-box">
                       <span class="eyebrow">Final Output</span>
@@ -152,6 +145,27 @@
                     <article class="summary-box">
                       <span class="eyebrow">Complexity</span>
                       <div id="complexity-output" class="summary-box__content">Choose an algorithm.</div>
+                    </article>
+                  </div>
+                </section>
+
+                <section class="card card--insights">
+                  <div class="card__header">
+                    <h4>Run Insights</h4>
+                    <span id="step-counter" class="pill">0 / 0</span>
+                  </div>
+                  <div class="insight-grid">
+                    <article id="current-step-box" class="insight-box">
+                      <span class="eyebrow">Current Event</span>
+                      <div id="current-step" class="insight-box__content">Run an algorithm to see the active state.</div>
+                    </article>
+                    <article class="insight-box">
+                      <span class="eyebrow">Progress</span>
+                      <div id="run-progress" class="insight-box__content">Waiting for execution.</div>
+                    </article>
+                    <article class="insight-box">
+                      <span class="eyebrow">Playback</span>
+                      <div id="playback-status" class="insight-box__content">Manual mode.</div>
                     </article>
                   </div>
                 </section>
